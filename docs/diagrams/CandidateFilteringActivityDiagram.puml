@@ -1,0 +1,35 @@
+@startuml
+!include style.puml
+skinparam arrowThickness 1.1
+skinparam arrowColor LOGIC_COLOR_T4
+
+start
+:Parse name keywords;
+:Parse role-title keywords;
+:Parse candidate statuses;
+if (All criteria empty?) then (yes)
+  :Show all candidates;
+else (no)
+  :Evaluate each candidate;
+  if (Name keyword matches?) then (yes)
+    :Keep candidate;
+  elseif (Role-title keyword matches?) then (yes)
+    :Keep candidate;
+  elseif (Candidate status is selected?) then (yes)
+    :Keep candidate;
+  else (no)
+    :Remove candidate from visible list;
+  endif
+endif
+:Visible indices are regenerated;
+stop
+
+note right
+Within a field, alternatives use OR.
+Across name, role-title and candidate-status
+fields, the implementation also uses OR.
+There is currently no role-status criterion
+in the find command; role status is shown and
+managed in the separate role list.
+end note
+@enduml

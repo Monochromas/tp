@@ -450,18 +450,22 @@ The role list refreshes and its indices update.
 `LogicManager` saves the removal. Deletion releases the title for reuse but never deletes, detaches,
 or reassigns candidates. Deletion takes effect immediately, but can be undone in the current session.
 
-#### Undoing and redoing role changes
+#### Undoing role changes
 
 Close and delete inherit `Command#isUndoable` returning `true`. Before execution, `LogicManager`
 asks `ModelManager#recordAddressBookState` to retain a complete `AddressBook` snapshot, including
 roles and candidates. Successful execution that changes stored values clears redo history through `commitAddressBookState`;
 an execution failure discards the pending snapshot instead.
 
-`undo` and `redo` restore these snapshots in reverse and forward order respectively, and
-`LogicManager` saves the restored records. Undo can therefore restore a deleted role or reverse a
-closure without a dedicated reopen command. Later changes must be undone first. The history stacks
-are held in memory only: restarting loads saved records but does not restore undo or redo history.
-Run `list role` after undo or redo to display the updated roles; listing does not change history.
+`undo` restores the complete previous candidate-and-role state, so it can restore a deleted role,
+reverse a closure, restore notes, interviews and statuses, reverse a role edit, or reverse candidate
+reassignment. Repeating `undo` walks backwards one successful change at a time. An empty history
+leaves both lists unchanged and reports `There is no change to undo.` The history is held in memory
+only: restarting loads saved records but does not restore undo history. Listing the roles after undo
+displays the restored state and does not create history.
+
+<puml src="diagrams/UndoSequenceDiagram.puml" width="900"
+  alt="Sequence of recording, executing and undoing a data-changing command" />
 
 #### Status changes and one hire per role
 
@@ -532,6 +536,31 @@ candidate filter resets to show all records. The existing `Edited candidate: ...
 updated candidate, including the new name and canonical role. Normal `LogicManager` saving persists
 the association without a JSON schema change. Validation failures leave records and filters
 unchanged and do not save. Neither role's status changes automatically.
+
+### Candidate filtering and retained views
+
+The `find` command filters candidates using name keywords, role-title keywords, and candidate
+statuses. Matching is case-insensitive. Multiple values within each field use OR, and the three
+fields are also combined with OR: a candidate remains visible if any name keyword matches, any
+role-title keyword matches, or its status is selected. There is no role-status criterion in the
+implemented `find` command; open/closed roles are displayed and managed through the separate role
+list. An empty filter shows every candidate.
+
+<puml src="diagrams/CandidateFilteringActivityDiagram.puml" width="850"
+  alt="Activity flow for candidate filtering" />
+
+Candidates that do not match disappear from the observable list and the remaining candidates are
+renumbered. Candidate commands use these current visible indices. `note`, `interview`, and ordinary
+`edit` preserve the active candidate filter; a changed name or role is reevaluated immediately and
+may therefore remove the edited candidate. `status` intentionally resets the candidate filter to
+show all candidates, so batch status updates are recommended when processing several visible
+records. Role renaming and role-status changes refresh the retained candidate predicate: candidates
+whose role title no longer matches disappear, while role status itself is not a candidate-filter
+criterion.
+
+Undo restores candidate and role data together and then reevaluates the retained candidate filter,
+so the visible list and its indices can change after undo. The implementation does not provide a
+sorting operation; list order remains the stored order.
 
 ### Role workflow diagnostics and internal checks
 

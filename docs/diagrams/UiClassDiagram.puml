@@ -41,6 +41,8 @@ MainWindow *-down-> "1" StatusBarFooter
 
 PersonListPanel -down-> "*" PersonCard
 RoleListPanel -down-> "*" RoleCard
+RoleListPanel ..> RoleCandidateCounts : creates
+RoleCard ..> RoleCandidateCounts : displays
 
 MainWindow -left-|> UiPart
 
